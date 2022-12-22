@@ -44,6 +44,7 @@ void build(Node *np, ui *array){
             }
         }
     } 
+    return;
 }
 
 /* global variable for dfs  */
@@ -52,25 +53,27 @@ ui index = 0;
 void dfs(Node *n, ui *array, int k, ui num){
     ui dfsnum=0;   
     bool leafflag = true;
-    if(n->lp!=NULL) {
+    if((n->lp)!=NULL) {
         dfs(n->lp, array, k+1, num);
         leafflag = false;
     }
-    if(n->rp!=NULL){
+    if((n->rp)!=NULL){
         dfsnum = num + (1<<(POWMAX-k));
         dfs(n->rp, array, k+1, dfsnum);
-        leafflag = true;
+        leafflag = false;
     }
     if(leafflag){
         array[index] = num;
         index++; 
     }
+    return;
 } 
 
 void delete(Node *n){
     if(n->lp!=NULL) delete(n->lp);
     if(n->rp!=NULL) delete(n->rp);
     free(n);
+    return;
 }
 
 void shuffle(ui *array);
