@@ -154,10 +154,11 @@ void main(int argc, char *argv[])//プログラム名 大きさ シード値
     for(i=0; i<size; i++){
         array1[i] = rand();
         array2[i] = array1[i];
-;    }
+    }
 
     double time1 = sort1(array1);
-    double time2 = sort2(array2);
+    double time2;
+    //sort2(array2);
 
     printf("time1 = %lf, time2 = %lf\n", time1, time2);
     printf("speedup = %lf\n", time1 / time2);
