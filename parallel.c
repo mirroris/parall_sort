@@ -58,8 +58,10 @@ void build(Node *root, ui *array){
 
 /*  build_parallel:  order for array -> order for tree   */
 void build_parallel(Node *root, ui *array){
-    Node *np; 
+    Node *np;
+    #pragma omp parallel 
     {
+        #pragma omp for
         for(int i=0; i<size;i++){ 
             np = root;
             ui x = array[i];
@@ -67,10 +69,17 @@ void build_parallel(Node *root, ui *array){
                 if(((1<<k)& x)!=0){
                     if((np->rp)==NULL){
                         Node *child = (Node *)malloc(sizeof(Node));
+                        if(np->rp!=NULL) {
+                            printf("conflict\n");
+                            free(child);
+                            np = np->rp;
+                            np->num++;
+                            continue;
+                        }
+                        np->rp = child;
                         child->rp = NULL;
                         child->lp = NULL;
                         child->num = 0;
-                        np->rp = child;
                     }
                     np = np->rp;
                     np->num++;
@@ -78,10 +87,17 @@ void build_parallel(Node *root, ui *array){
                 else {
                     if((np->lp)==NULL){
                         Node *child = (Node *)malloc(sizeof(Node));
+                        if(np->lp!=NULL) {
+                            printf("conflict\n");
+                            free(child);
+                            np = np->lp;
+                            np->num++;
+                            continue;
+                        }
+                        np->lp = child;
                         child->rp = NULL;
                         child->lp = NULL;
                         child->num = 0;
-                        np->lp = child;
                     }
                     np = np->lp;
                     np->num++;
