@@ -19,35 +19,34 @@ typedef  struct Node Node;
 
 
 /*  build:  order for array -> order for tree   */
-void build(Node *np, ui *array){
-    for(int i=0; i<size;i++){
+void build(Node *root, ui *array){
+    Node *np; 
+    for(int i=0; i<size;i++){ 
+        np = root;
         ui x = array[i];
-        printf("x = %u\n = ",x);
+        printf("x = %u\n",x);
         for(int k=31;k>=0;k--){
             if(((1<<k)& x)!=0){
-                printf("1");
-                if(np->rp==NULL){
+                if((np->rp)==NULL){
                     Node *child = (Node *)malloc(sizeof(Node));
                     child->rp = NULL;
                     child->lp = NULL;
+                    child->num = (1 << k);
                     np->rp = child;
                 }
-                (np->num)++;
                 np = np->rp;
             }
             else {
-                printf("0");
-                if(np->lp==NULL){
+                if((np->lp)==NULL){
                     Node *child = (Node *)malloc(sizeof(Node));
                     child->rp = NULL;
                     child->lp = NULL;
+                    child->num = (1 << k);
                     np->lp = child;
                 }
-                (np->num)++;
                 np = np->lp;
             }
         }
-        printf("\n");
     } 
     return;
 }
@@ -58,7 +57,7 @@ void build_parallel(Node *np, ui *array){
     {   
         #pragma omp for
         for(int i=0; i<size;i++){
-            int x = array[i];
+            ui x = array[i];
             for(int k=31;k>=0;k--){
                 if(((1<<k)& x)!=0){
                     if(np->rp==NULL){
@@ -93,24 +92,20 @@ ui index;
 void dfs(Node *n, ui *array, int k, ui num){
     ui dfsnum=0;   
     bool leafflag = true;
-    printf("=================================\n===   dfs(%u, %u)   ===\n", 1 <<(POWMAX -k), num);
     if((n->lp)!=NULL) {
-        printf("lp->\n");
         dfs(n->lp, array, k+1, num);
         leafflag = false;
     }
     if((n->rp)!=NULL){
         dfsnum = num + (1<<(POWMAX-k));
-        printf("rp->\n");
         dfs(n->rp, array, k+1, dfsnum);
         leafflag = false;
     }
     if(leafflag){
         array[index] = num;
-        printf ("array[%u] = %u\n", index, num);
+        printf("%u %u\n", index,num);
         index++;
     }
-    printf("==================================\n");
     return;
 } 
 
@@ -136,7 +131,6 @@ double sort1(ui *array){
     root->rp = NULL;
 
     build(root, array);
-    printf("=========================\n\t === dfs start ===\t\n===========================\n");
     dfs(root, array, 0, 0);
     delete(root);
     //逐次ソート終了
@@ -206,7 +200,8 @@ void main(int argc, char *argv[])//プログラム名 大きさ シード値
     }
 
     double time1 = sort1(array1);
-    double time2 = sort2(array2);
+    double time2;
+    // = sort2(array2);
 
     printf("time1 = %lf, time2 = %lf\n", time1, time2);
     printf("speedup = %lf\n", time1 / time2);
