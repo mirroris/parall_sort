@@ -16,72 +16,78 @@ struct Node{
 };
 typedef  struct Node Node;
 
-
-
 /*  build:  order for array -> order for tree   */
 void build(Node *root, ui *array){
     Node *np; 
     for(int i=0; i<size;i++){ 
         np = root;
         ui x = array[i];
-        printf("x = %u\n",x);
+        //printf("x = %u\n",x);
         for(int k=31;k>=0;k--){
             if(((1<<k)& x)!=0){
                 if((np->rp)==NULL){
                     Node *child = (Node *)malloc(sizeof(Node));
                     child->rp = NULL;
                     child->lp = NULL;
-                    child->num = (1 << k);
+                    child->num = 0;
                     np->rp = child;
+                    //printf("(%u)",(1 << k));
                 }
                 np = np->rp;
+                (np->num)++;
+                //printf("->");
             }
             else {
                 if((np->lp)==NULL){
                     Node *child = (Node *)malloc(sizeof(Node));
                     child->rp = NULL;
                     child->lp = NULL;
-                    child->num = (1 << k);
+                    child->num = 0;
                     np->lp = child;
+                    //printf("(%u)",(1 << k));
                 }
                 np = np->lp;
+                (np->num)++;
+                //printf("->");
             }
+            //printf("\n");
         }
     } 
     return;
 }
 
 /*  build_parallel:  order for array -> order for tree   */
-void build_parallel(Node *np, ui *array){
-    #pragma omp parallel
-    {   
-        #pragma omp for
-        for(int i=0; i<size;i++){
+void build_parallel(Node *root, ui *array){
+    Node *np; 
+    {
+        for(int i=0; i<size;i++){ 
+            np = root;
             ui x = array[i];
             for(int k=31;k>=0;k--){
                 if(((1<<k)& x)!=0){
-                    if(np->rp==NULL){
+                    if((np->rp)==NULL){
                         Node *child = (Node *)malloc(sizeof(Node));
                         child->rp = NULL;
                         child->lp = NULL;
+                        child->num = 0;
                         np->rp = child;
                     }
-                    (np->num)++;
                     np = np->rp;
+                    np->num++;
                 }
                 else {
-                    if(np->lp==NULL){
+                    if((np->lp)==NULL){
                         Node *child = (Node *)malloc(sizeof(Node));
                         child->rp = NULL;
                         child->lp = NULL;
+                        child->num = 0;
                         np->lp = child;
                     }
-                    (np->num)++;
                     np = np->lp;
+                    np->num++;
                 }
             }
         } 
-        
     }
     return;
 }
@@ -92,19 +98,47 @@ ui index;
 void dfs(Node *n, ui *array, int k, ui num){
     ui dfsnum=0;   
     bool leafflag = true;
-    if((n->lp)!=NULL) {
+    if(n->lp!=NULL) {
+        //printf("dfs(%u)\n", n->num);
         dfs(n->lp, array, k+1, num);
         leafflag = false;
     }
-    if((n->rp)!=NULL){
+    if(n->rp!=NULL){
+        dfsnum = num + (1<<(POWMAX-k));
+        //printf("dfs(%u)\n", n->num);
+        dfs(n->rp, array, k+1, dfsnum);
+        leafflag = false;
+    }
+    if(leafflag){
+        ui cnt = n->num;
+        //printf("cnt = %u\n", cnt);
+        while(cnt-->0){
+            array[index] = num;
+            index++;
+        }
+    }
+    return;
+} 
+
+/*  dfs_parallel:    order for tree -> order forarray   */
+void dfs_parallel(Node *n, ui *array, int k, ui num){
+    ui dfsnum=0;   
+    bool leafflag = true;
+    if(n->lp!=NULL) {
+        dfs(n->lp, array, k+1, num);
+        leafflag = false;
+    }
+    if(n->rp!=NULL){
         dfsnum = num + (1<<(POWMAX-k));
         dfs(n->rp, array, k+1, dfsnum);
         leafflag = false;
     }
     if(leafflag){
-        array[index] = num;
-        printf("%u %u\n", index,num);
-        index++;
+        ui cnt = n->num;
+        while(cnt-->0){
+            array[index] = num;
+            index++;
+        }
     }
     return;
 } 
@@ -116,7 +150,11 @@ void delete(Node *n){
     return;
 }
 
-void shuffle(ui *array);
+void delete_parallel(Node *n){
+    (n->lp)->num;
+    return;
+}
+
 
 double sort1(ui *array){
     double time;
@@ -131,7 +169,10 @@ double sort1(ui *array){
     root->rp = NULL;
 
     build(root, array);
+    printf ("build (%lf)\n", omp_get_wtime()-time);
+    index = 0;
     dfs(root, array, 0, 0);
+    printf ("dfs (%lf)\n", omp_get_wtime()-time);
     delete(root);
     //逐次ソート終了
     time = omp_get_wtime() - time;
@@ -149,7 +190,7 @@ double sort1(ui *array){
     return time;
 }
 
-double sort2(int *array){
+double sort2(ui *array){
     double time;
 
     int i;
@@ -162,7 +203,10 @@ double sort2(int *array){
     root->rp = NULL;
 
     build_parallel(root, array);
+    printf ("build_parallel (%lf)\n", omp_get_wtime()-time);
+    index = 0;
     dfs(root, array, 0, 0);
+    printf ("dfs (%lf)\n", omp_get_wtime()-time);
     delete(root);
     //並列ソート終了
     int flag = 0;
@@ -175,7 +219,7 @@ double sort2(int *array){
         printf("Parallel program may wrong.\n");
         return -1;
     }
-    time = omp_get_wtime();
+    time = omp_get_wtime()-time;
     return time;
 }
 
@@ -200,8 +244,7 @@ void main(int argc, char *argv[])//プログラム名 大きさ シード値
     }
 
     double time1 = sort1(array1);
-    double time2;
-    // = sort2(array2);
+    double time2 = sort2(array1);
 
     printf("time1 = %lf, time2 = %lf\n", time1, time2);
     printf("speedup = %lf\n", time1 / time2);
