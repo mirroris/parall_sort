@@ -3,14 +3,17 @@
 #include <math.h>
 #include <omp.h>
 #include<stdbool.h>
+#include<unistd.h>
 #define ui unsigned int 
 #define POWMAX 31
 #define MOD 1024
+
 
 /*  global for all programs */
 int size, seed;
 struct Node{
     ui num;
+    bool semp;
     struct Node *lp;
     struct Node *rp;
 };
@@ -67,37 +70,41 @@ void build_parallel(Node *root, ui *array){
             ui x = array[i];
             for(int k=31;k>=0;k--){
                 if(((1<<k)& x)!=0){
+                    do{
+                        printf("Node[%p] waiting\n",np);
+                        usleep(rand()%100);
+                    }while(np->semp);
                     if((np->rp)==NULL){
+                        np->semp = true;
+                        printf("Node[%p] creating\n",np);
                         Node *child = (Node *)malloc(sizeof(Node));
-                        if(np->rp!=NULL) {
-                            printf("conflict\n");
-                            free(child);
-                            np = np->rp;
-                            np->num++;
-                            continue;
-                        }
-                        np->rp = child;
                         child->rp = NULL;
                         child->lp = NULL;
                         child->num = 0;
+                        child->semp = false;
+                        np->rp = child;
+                        np->semp = false;
+                        printf("Node[%p] comleted!\n",np);
                     }
                     np = np->rp;
                     np->num++;
                 }
                 else {
+                    do{
+                        printf("Node[%p] waiting\n",np);
+                        usleep(rand()%100);
+                    }while(np->semp);
                     if((np->lp)==NULL){
+                        np->semp = true;
+                        printf("Node[%p] creating\n",np);
                         Node *child = (Node *)malloc(sizeof(Node));
-                        if(np->lp!=NULL) {
-                            printf("conflict\n");
-                            free(child);
-                            np = np->lp;
-                            np->num++;
-                            continue;
-                        }
-                        np->lp = child;
                         child->rp = NULL;
                         child->lp = NULL;
                         child->num = 0;
+                        child->semp = false;
+                        np->lp = child;
+                        np->semp = false;
+                        printf("Node[%p] compreted!\n",np);
                     }
                     np = np->lp;
                     np->num++;
@@ -183,6 +190,7 @@ double sort1(ui *array){
     root->num = size;
     root->lp = NULL;
     root->rp = NULL;
+    root->semp = false;
 
     build(root, array);
     printf ("build (%lf)\n", omp_get_wtime()-time);
@@ -217,6 +225,7 @@ double sort2(ui *array){
     root->num = size;
     root->lp = NULL;
     root->rp = NULL;
+    root->semp = false;
 
     build_parallel(root, array);
     printf ("build_parallel (%lf)\n", omp_get_wtime()-time);
