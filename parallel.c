@@ -2,181 +2,74 @@
 #include <stdlib.h>
 #include <math.h>
 #include <omp.h>
-#include<stdbool.h>
-#include<unistd.h>
+#include <stdbool.h>
 #define ui unsigned int 
 #define POWMAX 31
 #define MOD 1024
 
+#define typeofdata ui
+
 
 /*  global for all programs */
 int size, seed;
-struct Node{
-    ui num;
-    bool semp;
-    struct Node *lp;
-    struct Node *rp;
-};
-typedef  struct Node Node;
 
 /*  build:  order for array -> order for tree   */
-void build(Node *root, ui *array){
-    Node *np; 
-    for(int i=0; i<size;i++){ 
-        np = root;
+ui* build(ui *array){
+    /* ここ工夫して部分木として表現し、出力の際に補正してやればデータ領域減らせそう*/  
+    ui *cbt = (ui*)malloc((1LL<<33)-2);
+    for(int i=0;i<size;i++)cbt[i] = 0;
+
+    cbt[0] = size;
+    for(int i=0;i<size;i++){
         ui x = array[i];
-        //printf("x = %u\n",x);
+        ui cp = 0;
         for(int k=31;k>=0;k--){
-            if(((1<<k)& x)!=0){
-                if((np->rp)==NULL){
-                    Node *child = (Node *)malloc(sizeof(Node));
-                    child->rp = NULL;
-                    child->lp = NULL;
-                    child->num = 0;
-                    np->rp = child;
-                    //printf("(%u)",(1 << k));
-                }
-                np = np->rp;
-                (np->num)++;
-                //printf("->");
+            if(x & (1<<k)){
+                cp = 2*cp+2;
+                cbt[cp]++;
             }
             else {
-                if((np->lp)==NULL){
-                    Node *child = (Node *)malloc(sizeof(Node));
-                    child->rp = NULL;
-                    child->lp = NULL;
-                    child->num = 0;
-                    np->lp = child;
-                    //printf("(%u)",(1 << k));
-                }
-                np = np->lp;
-                (np->num)++;
-                //printf("->");
+                cp = 2*cp+1;
+                cbt[cp]++;
             }
-            //printf("\n");
         }
-    } 
-    return;
+    }
+    return cbt;
 }
 
 /*  build_parallel:  order for array -> order for tree   */
-void build_parallel(Node *root, ui *array){
-    Node *np;
-    #pragma omp parallel 
-    {
-        #pragma omp for
-        for(int i=0; i<size;i++){ 
-            np = root;
-            ui x = array[i];
-            for(int k=31;k>=0;k--){
-                if(((1<<k)& x)!=0){
-                    do{
-                        printf("Node[%p] waiting\n",np);
-                        usleep(rand()%100);
-                    }while(np->semp);
-                    if((np->rp)==NULL){
-                        np->semp = true;
-                        printf("Node[%p] creating\n",np);
-                        Node *child = (Node *)malloc(sizeof(Node));
-                        child->rp = NULL;
-                        child->lp = NULL;
-                        child->num = 0;
-                        child->semp = false;
-                        np->rp = child;
-                        np->semp = false;
-                        printf("Node[%p] comleted!\n",np);
-                    }
-                    np = np->rp;
-                    np->num++;
-                }
-                else {
-                    do{
-                        printf("Node[%p] waiting\n",np);
-                        usleep(rand()%100);
-                    }while(np->semp);
-                    if((np->lp)==NULL){
-                        np->semp = true;
-                        printf("Node[%p] creating\n",np);
-                        Node *child = (Node *)malloc(sizeof(Node));
-                        child->rp = NULL;
-                        child->lp = NULL;
-                        child->num = 0;
-                        child->semp = false;
-                        np->lp = child;
-                        np->semp = false;
-                        printf("Node[%p] compreted!\n",np);
-                    }
-                    np = np->lp;
-                    np->num++;
-                }
-            }
-        } 
-    }
-    return;
-}
-
+void build_parallel(ui *array){return;}
+ 
 /* global variable for dfs  */
-ui index;
+ui aryindex;
 /*  dfs:    order for tree -> order forarray   */
-void dfs(Node *n, ui *array, int k, ui num){
+void dfs(ui n, ui *array, int k, ui num){
     ui dfsnum=0;   
     bool leafflag = true;
-    if(n->lp!=NULL) {
-        //printf("dfs(%u)\n", n->num);
-        dfs(n->lp, array, k+1, num);
+    ui lp = 2*n+1, rp = 2*n+2;
+    if(array[lp]!=0) {
+        printf("dfs(%u)\n", n);
+        dfs(lp, array, k+1, num);
         leafflag = false;
     }
-    if(n->rp!=NULL){
+    if(array[rp]!=0){
         dfsnum = num + (1<<(POWMAX-k));
-        //printf("dfs(%u)\n", n->num);
-        dfs(n->rp, array, k+1, dfsnum);
+        printf("dfs(%u)\n", n);
+        dfs(rp, array, k+1, dfsnum);
         leafflag = false;
     }
     if(leafflag){
-        ui cnt = n->num;
-        //printf("cnt = %u\n", cnt);
+        ui cnt = array[n];
+        printf("cnt = %u\n", cnt);
         while(cnt-->0){
-            array[index] = num;
-            index++;
+            array[aryindex] = num;
+            aryindex++;
         }
     }
     return;
 } 
 
-/*  dfs_parallel:    order for tree -> order forarray   */
-void dfs_parallel(Node *n, ui *array, int k, ui num){
-    ui dfsnum=0;   
-    bool leafflag = true;
-    if(n->lp!=NULL) {
-        dfs(n->lp, array, k+1, num);
-        leafflag = false;
-    }
-    if(n->rp!=NULL){
-        dfsnum = num + (1<<(POWMAX-k));
-        dfs(n->rp, array, k+1, dfsnum);
-        leafflag = false;
-    }
-    if(leafflag){
-        ui cnt = n->num;
-        while(cnt-->0){
-            array[index] = num;
-            index++;
-        }
-    }
-    return;
-} 
 
-void delete(Node *n){
-    if(n->lp!=NULL) delete(n->lp);
-    if(n->rp!=NULL) delete(n->rp);
-    free(n);
-    return;
-}
-
-void delete_parallel(Node *n){
-    (n->lp)->num;
-    return;
-}
 
 
 double sort1(ui *array){
@@ -186,18 +79,11 @@ double sort1(ui *array){
 
     time = omp_get_wtime();
     //逐次ソート開始
-    Node *root = (Node *)malloc(sizeof(Node));
-    root->num = size;
-    root->lp = NULL;
-    root->rp = NULL;
-    root->semp = false;
-
-    build(root, array);
+    ui *cbt = build(array);
     printf ("build (%lf)\n", omp_get_wtime()-time);
-    index = 0;
-    dfs(root, array, 0, 0);
+    aryindex = 0;
+    dfs(aryindex, cbt, 0, 0);
     printf ("dfs (%lf)\n", omp_get_wtime()-time);
-    delete(root);
     //逐次ソート終了
     time = omp_get_wtime() - time;
 
@@ -221,18 +107,6 @@ double sort2(ui *array){
 
     time = omp_get_wtime();
     //並列ソート開始
-    Node *root = (Node *)malloc(sizeof(Node));
-    root->num = size;
-    root->lp = NULL;
-    root->rp = NULL;
-    root->semp = false;
-
-    build_parallel(root, array);
-    printf ("build_parallel (%lf)\n", omp_get_wtime()-time);
-    index = 0;
-    dfs(root, array, 0, 0);
-    printf ("dfs (%lf)\n", omp_get_wtime()-time);
-    delete(root);
     //並列ソート終了
     int flag = 0;
     for(i=0; i<size-1; i++){

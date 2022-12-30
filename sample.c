@@ -4,6 +4,7 @@
 
 int main(){
     ui a = 1, b = 2;
-    printf("%u, %d\n" , a-b, (int)(a-b));
+    printf("%ld, %ld\n" , sizeof(int), sizeof(b));
+
     return 0;
 }
