@@ -4,11 +4,16 @@
 #include <omp.h>
 #include <stdbool.h>
 #define ui unsigned int 
+#define ll long long
 #define POWMAX 31
 #define MOD 1024
 
 #define typeofdata ui
 
+/*  O(size)を目指すデータ構造   */
+struct Node {
+    /* 枝分かれするまでデータ省略できるのでは？*/
+}
 
 /*  global for all programs */
 int size, seed;
@@ -16,13 +21,14 @@ int size, seed;
 /*  build:  order for array -> order for tree   */
 ui* build(ui *array){
     /* ここ工夫して部分木として表現し、出力の際に補正してやればデータ領域減らせそう*/  
-    ui *cbt = (ui*)malloc((1LL<<33)-2);
-    for(int i=0;i<size;i++)cbt[i] = 0;
+    ll fixsize = (1LL<<33) -2;
+    ui *cbt = (ui*)malloc(fixsize);
+    for(ll i=0;i<fixsize;i++)cbt[i] = 0;
 
     cbt[0] = size;
     for(int i=0;i<size;i++){
         ui x = array[i];
-        ui cp = 0;
+        ll cp = 0;
         for(int k=31;k>=0;k--){
             if(x & (1<<k)){
                 cp = 2*cp+2;
@@ -43,18 +49,18 @@ void build_parallel(ui *array){return;}
 /* global variable for dfs  */
 ui aryindex;
 /*  dfs:    order for tree -> order forarray   */
-void dfs(ui n, ui *array, int k, ui num){
+void dfs(ll n, ui *array, int k, ui num){
     ui dfsnum=0;   
     bool leafflag = true;
-    ui lp = 2*n+1, rp = 2*n+2;
+    ll lp = 2*n+1, rp = 2*n+2;
     if(array[lp]!=0) {
-        printf("dfs(%u)\n", n);
+        printf("dfs(%llu)\n", n);
         dfs(lp, array, k+1, num);
         leafflag = false;
     }
     if(array[rp]!=0){
         dfsnum = num + (1<<(POWMAX-k));
-        printf("dfs(%u)\n", n);
+        printf("dfs(%llu)\n", n);
         dfs(rp, array, k+1, dfsnum);
         leafflag = false;
     }
