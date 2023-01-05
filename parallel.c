@@ -8,7 +8,7 @@
 #define POWMAX 31
 #define MOD 1024
 #define MAXTHRDS 32
-#define STKSIZE 32
+#define STKSIZE 33
 
 
 /*  global for all programs */
@@ -20,11 +20,14 @@ struct Node{
 };
 typedef  struct Node Node;
 
-Node astk[STKSIZE];
-Node bstk[STKSIZE];
+Node *astk[STKSIZE];
+Node *bstk[STKSIZE];
 
 ui index;
 void dfs(Node *n, ui *array, int k, ui num);
+void delete(Node *n);
+void merge(Node *a, Node *b);
+
 /*  build:  order for array -> order for tree   */
 void build(Node *root, ui *array, int size){
     Node *np; 
@@ -80,33 +83,49 @@ void build_parallel(Node **root, ui *array, int size){
         root[id]->rp = NULL;
         root[id]->lp = NULL;
         if(id<Nthrds-1) {
-            root->num = chunk;
+            root[id]->num = chunk;
             build(root[id], array+id*chunk, chunk);
         }
         else {
-            root->num = rent;
+            root[id]->num = rent;
             build(root[id], array+id*chunk, rent);
         }
     #pragma omp barrier
     // ここでrootをマージしたい
     // while (k>1) root =  merge(root, k) (k分割マージ)
+    
         int d = Nthrds;
         int prevd = Nthrds;
         int preprevd = Nthrds;
         while(d>1){
         d = 1 + ((d - 1)/2); 
-        if((id+d) < prevd) merge(root[id], root[id+d]);
-        else if((prevd<=id) && (id<preprevd)))delete(root[id]);
+        if((id+d) < prevd) {
+            printf("merge(%d, %d)\n", id, id+d);
+            merge(root[id], root[id+d]);
+        }
+        else if((prevd<=id) && (id<preprevd)){
+            printf("delete(%d)\n", id);
+            delete(root[id]);
+        }
         prevd = d;
         preprevd = prevd;
         #pragma omp barrier
         }
+        
     }
-
+    /*
+    printf("root[0]=\n");
+    dfs(root[0], array, 0, 0);
+    printf("root[1]=\n");
+    dfs(root[1], array, 0, 0);
+    merge(root[0], root[1]);  
+    printf("root[0]=\n");
+    dfs(root[0], array, 0, 0);
+    */
     return;
 }
 
-
+/*
 void merge(Node *a, Node *b){
     //F-Treeのままマージする場合との違い
     //対象の構造なのでもしかするとよりよいアルゴリズムが見つかるかもしれない
@@ -114,41 +133,67 @@ void merge(Node *a, Node *b){
     Node *anp = a;
     Node *bnp = b;
     int asp=0, bsp = 0;
-    astk[++asp] = anp;
-    bstk[++bsp] = bnp;
-    while(bsp>0){
-        anp = astk[asp--];
-        bnp = bstk[bsp--];
+    astk[asp] = anp;
+    bstk[bsp] = bnp;
+    bool nullflag;
+    do{
+        nullflag = true;
+        printf("bsp = %d\n",bsp);
+        anp = astk[asp];
+        bnp = bstk[bsp];
+
         if(bnp->lp!=NULL){
             bnp = bnp->lp;
             bstk[++bsp] = bnp;
-            if(anp->lp!=NULL) {
-                anp = anp->lp
+            /*if(anp->lp!=NULL) {
+                anp = anp->lp;
                 astk[++asp] = anp;
             }
             else {
                 // anpにbの葉を追加する。できるだけ最小限のコストに抑える
                 anp->lp = bnp;
                 bnp = NULL;
-                bsp--;
             }
-        } 
-        if(bnp->rp!=NULL){
+        }
+        else if(bnp->rp!=NULL){
             bnp = bnp->rp;
             bstk[++bsp] = bnp;
-            if(anp->rp!=NULL) {
-                anp = anp->rp
+            /*if(anp->rp!=NULL) {
+                anp = anp->rp;
                 astk[++asp] = anp;
             }
             else {
                 // anpにbの葉を追加する。できるだけ最小限のコストに抑える
                 anp->rp = bnp;
                 bnp = NULL;
-                bsp--;
             }
         } 
-    }
+        else {
+            if(bsp == STKSIZE) anp->num+=bnp->num;
+            bnp = NULL;
+            free(bnp);
+            asp--,bsp--;
+        }
+    }while(bsp>0);
 
+    return;
+}*/
+
+void merge(Node *a, Node *b){
+    bool nullflag = true;
+    if(b->lp!=NULL){
+        nullflag = false;
+        if(a->lp!=NULL) merge(a->lp, b->lp);
+        else a->lp = b->lp;
+    }
+    if(b->rp!=NULL){
+        nullflag = false;
+        if(a->rp!=NULL) merge(a->rp, b->rp);
+        else a->rp = b->rp;
+    }
+    if(nullflag){
+        a->num+=b->num;
+    }
     return;
 }
 
@@ -169,30 +214,7 @@ void dfs(Node *n, ui *array, int k, ui num){
     }
     if(leafflag){
         ui cnt = n->num;
-        //printf("num = %u\n", num);
-        while(cnt-->0){
-            array[index] = num;
-            index++;
-        }
-    }
-    return;
-} 
-
-/*  dfs_parallel:    order for tree -> order forarray   */
-void dfs_parallel(Node *n, ui *array, int k, ui num){
-    ui dfsnum=0;   
-    bool leafflag = true;
-    if(n->lp!=NULL) {
-        dfs(n->lp, array, k+1, num);
-        leafflag = false;
-    }
-    if(n->rp!=NULL){
-        dfsnum = num + (1<<(POWMAX-k));
-        dfs(n->rp, array, k+1, dfsnum);
-        leafflag = false;
-    }
-    if(leafflag){
-        ui cnt = n->num;
+        printf("num = %u\n", num);
         while(cnt-->0){
             array[index] = num;
             index++;
@@ -253,6 +275,7 @@ double sort2(ui *array){
     build_parallel(root, array, size);
     printf ("build_parallel (%lf)\n", omp_get_wtime()-time);
     index = 0;
+    dfs(root[0], array, 0, 0);
     printf ("dfs (%lf)\n", omp_get_wtime()-time);
     delete(root[0]);
     free(root);
