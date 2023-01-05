@@ -13,7 +13,6 @@
 int size, seed;
 struct Node{
     ui num;
-    bool semp;
     struct Node *lp;
     struct Node *rp;
 };
@@ -64,55 +63,45 @@ void build_parallel(Node *root, ui *array){
     Node *np;
     #pragma omp parallel 
     {
-        #pragma omp for
+        int id, i, Nthrds, istart, iend;
+        id = omp_get_thread_num();
+        Nthrds = omp_get_num_threads();
         for(int i=0; i<size;i++){ 
             np = root;
             ui x = array[i];
+            //printf("x = %u\n",x);
             for(int k=31;k>=0;k--){
                 if(((1<<k)& x)!=0){
-                    do{
-                        printf("Node[%p] waiting\n",np);
-                        usleep(rand()%100);
-                    }while(np->semp);
                     if((np->rp)==NULL){
-                        np->semp = true;
-                        printf("Node[%p] creating\n",np);
                         Node *child = (Node *)malloc(sizeof(Node));
                         child->rp = NULL;
                         child->lp = NULL;
                         child->num = 0;
-                        child->semp = false;
                         np->rp = child;
-                        np->semp = false;
-                        printf("Node[%p] comleted!\n",np);
+                        //printf("(%u)",(1 << k));
                     }
                     np = np->rp;
-                    np->num++;
+                    (np->num)++;
+                    //printf("->");
                 }
                 else {
-                    do{
-                        printf("Node[%p] waiting\n",np);
-                        usleep(rand()%100);
-                    }while(np->semp);
                     if((np->lp)==NULL){
-                        np->semp = true;
-                        printf("Node[%p] creating\n",np);
                         Node *child = (Node *)malloc(sizeof(Node));
                         child->rp = NULL;
                         child->lp = NULL;
                         child->num = 0;
-                        child->semp = false;
                         np->lp = child;
-                        np->semp = false;
-                        printf("Node[%p] compreted!\n",np);
+                        //printf("(%u)",(1 << k));
                     }
                     np = np->lp;
-                    np->num++;
+                    (np->num)++;
+                    //printf("->");
                 }
+                //printf("\n");
             }
         } 
+        return;
     }
-    return;
 }
 
 /* global variable for dfs  */
