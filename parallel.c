@@ -61,12 +61,16 @@ void build(Node *root, ui *array){
 /*  build_parallel:  order for array -> order for tree   */
 void build_parallel(Node **root, ui *array){
     Node *np;
+    int Nthrds;
     #pragma omp parallel 
     {
-        int id, Nthrds;
+        int id;
         id = omp_get_thread_num();
         Nthrds = omp_get_num_threads();
         root[id] = (Node *)malloc(sizeof(Node));
+        root[id]->num = 0;
+        root[id]->rp = NULL;
+        root[id]->lp = NULL;
 
         for(int i=id; i<size;i+=Nthrds){ 
             np = root[id];
@@ -102,29 +106,31 @@ void build_parallel(Node **root, ui *array){
                 //printf("\n");
             }
         } 
-
+#pragma omp barrier
     // ここでrootをマージしたい
     // while (k>1) root =  merge(root, k) (k分割マージ)
-    #pragma omp barrier
-        int d = Nthrds;
-        int prevd = Nthrds;
-        while(d > 1){
-            d = 1 + ((d - 1) / 2); // 0~d-1まで
-            if((id+d) < prevd) merge(root[id], root[id+d]);
-            //mergeした結果root[0~d-1]までになる
-            prevd = d;
-        #pragma omp barrier
-        }
+    }
+
+    int sum=0;
+    for(int i=0;i<(Nthrds-1);i++) {
     }
     return;
 }
 
-void* merge(Node *a, Node *b, int k){
+void full_merge(ui *array, int a,int b, int c){
+    int l=a,r=b;
+    while(array[l] > array[r]) l++;
+
+    return;
+} 
+
+void merge(Node *a, Node *b, int k){
+    //F-Treeのままマージする場合との違い
+    //mergedfs(a);
+
     return;
 }
 
-
-/* global variable for dfs  */
 ui index;
 /*  dfs:    order for tree -> order forarray   */
 void dfs(Node *n, ui *array, int k, ui num){
@@ -182,16 +188,6 @@ void delete(Node *n){
     return;
 }
 
-void delete_parallel(Node **n){
-    #pragma omp parallel 
-    {
-        int Nthrds = omp_get_num_threads;
-        int id = omp_get_thread_num;
-        delete(id);
-    }
-    return;
-}
-
 double sort1(ui *array){
     double time;
 
@@ -203,7 +199,6 @@ double sort1(ui *array){
     root->num = size;
     root->lp = NULL;
     root->rp = NULL;
-    root->semp = false;
 
     build(root, array);
     printf ("build (%lf)\n", omp_get_wtime()-time);
@@ -234,13 +229,13 @@ double sort2(ui *array){
 
     time = omp_get_wtime();
     //並列ソート開始
-    Node *root = (Node **)malloc(sizeof(Node *));
+    Node **root = (Node **)malloc(sizeof(Node *));
     build_parallel(root, array);
     printf ("build_parallel (%lf)\n", omp_get_wtime()-time);
     index = 0;
     dfs(root[0], array, 0, 0);
     printf ("dfs (%lf)\n", omp_get_wtime()-time);
-    delete_parallel(root);
+    delete(root[0]);
     free(root);
     //並列ソート終了
     int flag = 0;
