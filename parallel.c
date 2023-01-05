@@ -59,15 +59,17 @@ void build(Node *root, ui *array){
 }
 
 /*  build_parallel:  order for array -> order for tree   */
-void build_parallel(Node *root, ui *array){
+void build_parallel(Node **root, ui *array){
     Node *np;
     #pragma omp parallel 
     {
-        int id, i, Nthrds, istart, iend;
+        int id, Nthrds;
         id = omp_get_thread_num();
         Nthrds = omp_get_num_threads();
-        for(int i=0; i<size;i++){ 
-            np = root;
+        root[id] = (Node *)malloc(sizeof(Node));
+
+        for(int i=id; i<size;i+=Nthrds){ 
+            np = root[id];
             ui x = array[i];
             //printf("x = %u\n",x);
             for(int k=31;k>=0;k--){
@@ -100,9 +102,27 @@ void build_parallel(Node *root, ui *array){
                 //printf("\n");
             }
         } 
-        return;
+
+    // ここでrootをマージしたい
+    // while (k>1) root =  merge(root, k) (k分割マージ)
+    #pragma omp barrier
+        int d = Nthrds;
+        int prevd = Nthrds;
+        while(d > 1){
+            d = 1 + ((d - 1) / 2); // 0~d-1まで
+            if((id+d) < prevd) merge(root[id], root[id+d]);
+            //mergeした結果root[0~d-1]までになる
+            prevd = d;
+        #pragma omp barrier
+        }
     }
+    return;
 }
+
+void* merge(Node *a, Node *b, int k){
+    return;
+}
+
 
 /* global variable for dfs  */
 ui index;
@@ -162,11 +182,15 @@ void delete(Node *n){
     return;
 }
 
-void delete_parallel(Node *n){
-    (n->lp)->num;
+void delete_parallel(Node **n){
+    #pragma omp parallel 
+    {
+        int Nthrds = omp_get_num_threads;
+        int id = omp_get_thread_num;
+        delete(id);
+    }
     return;
 }
-
 
 double sort1(ui *array){
     double time;
@@ -210,18 +234,14 @@ double sort2(ui *array){
 
     time = omp_get_wtime();
     //並列ソート開始
-    Node *root = (Node *)malloc(sizeof(Node));
-    root->num = size;
-    root->lp = NULL;
-    root->rp = NULL;
-    root->semp = false;
-
+    Node *root = (Node **)malloc(sizeof(Node *));
     build_parallel(root, array);
     printf ("build_parallel (%lf)\n", omp_get_wtime()-time);
     index = 0;
-    dfs(root, array, 0, 0);
+    dfs(root[0], array, 0, 0);
     printf ("dfs (%lf)\n", omp_get_wtime()-time);
-    delete(root);
+    delete_parallel(root);
+    free(root);
     //並列ソート終了
     int flag = 0;
     for(i=0; i<size-1; i++){
