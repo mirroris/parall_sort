@@ -8,6 +8,7 @@
 #define POWMAX 31
 #define MOD 1024
 #define MAXTHRDS 32
+#define STKSIZE 32
 
 
 /*  global for all programs */
@@ -19,6 +20,8 @@ struct Node{
 };
 typedef  struct Node Node;
 
+Node astk[STKSIZE];
+Node bstk[STKSIZE];
 
 ui index;
 void dfs(Node *n, ui *array, int k, ui num);
@@ -106,28 +109,45 @@ void build_parallel(Node **root, ui *array, int size){
 
 void merge(Node *a, Node *b){
     //F-Treeのままマージする場合との違い
-    //mergedfs(a);
-    Stack stk;
+    //対象の構造なのでもしかするとよりよいアルゴリズムが見つかるかもしれない
+    //
     Node *anp = a;
     Node *bnp = b;
-    if(bnp->lp!=NULL){
-        bnp = bnp->lp;
-        if(anp->lp!=NULL) anp = anp->lp
-        else {
-            // anpにbの葉を追加する。できるだけ最小限のコストに抑える
-            anp->lp = bnp;
-            bnp = NULL;
-        }
-    } 
-    if(bnp->rp!=NULL){
-        bnp = bnp->rp;
-        if(anp->rp!=NULL) anp = anp->rp
-        else {
-            // anpにbの葉を追加する。できるだけ最小限のコストに抑える
-            anp->rp = bnp;
-            bnp = NULL;
-        }
-    } 
+    int asp=0, bsp = 0;
+    astk[++asp] = anp;
+    bstk[++bsp] = bnp;
+    while(bsp>0){
+        anp = astk[asp--];
+        bnp = bstk[bsp--];
+        if(bnp->lp!=NULL){
+            bnp = bnp->lp;
+            bstk[++bsp] = bnp;
+            if(anp->lp!=NULL) {
+                anp = anp->lp
+                astk[++asp] = anp;
+            }
+            else {
+                // anpにbの葉を追加する。できるだけ最小限のコストに抑える
+                anp->lp = bnp;
+                bnp = NULL;
+                bsp--;
+            }
+        } 
+        if(bnp->rp!=NULL){
+            bnp = bnp->rp;
+            bstk[++bsp] = bnp;
+            if(anp->rp!=NULL) {
+                anp = anp->rp
+                astk[++asp] = anp;
+            }
+            else {
+                // anpにbの葉を追加する。できるだけ最小限のコストに抑える
+                anp->rp = bnp;
+                bnp = NULL;
+                bsp--;
+            }
+        } 
+    }
 
     return;
 }
