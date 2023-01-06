@@ -16,6 +16,7 @@ int size, seed;
 int Nthrds;
 struct Node{
     ui num;
+    ui val;
     struct Node *lp;
     struct Node *rp;
 };
@@ -80,13 +81,20 @@ void build(Node *root, ui *array, int size){
 void build(Node *np, ui *array, int k, ui x){
     bool leaf = true;
     if((x&(1<<k))==0){
-        leaf = false;
+        /* 左の部分木のどこに挿入するか */
         if(np->lp!=NULL) build(np->lp, array, k+1, x);
+        else {
+            Node *child = (Node *)malloc(sizeof(Node));
+            child->lp = NULL;
+            child->rp = NULL;
+            child->num = 0;
+            child->val = x;
+        }
     }
     else {
-        leaf = false;
         if(np->rp!=NULL) build(np->rp, array, k+1, x);
     }
+    if(leaf)
 }
 
 /*  build_parallel:  order for array -> order for tree   */
