@@ -82,7 +82,10 @@ void build(Node *np, ui *array, int k, ui x){
     bool leaf = true;
     if((x&(1<<k))==0){
         /* 左の部分木のどこに挿入するか */
-        if(np->lp!=NULL) build(np->lp, array, k+1, x);
+        if(np->lp!=NULL) {
+            if(np->lp->val<=x)uild(np->lp, array, k+1, x);
+            else 
+        }
         else {
             Node *child = (Node *)malloc(sizeof(Node));
             child->lp = NULL;
