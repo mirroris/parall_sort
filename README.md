@@ -17,7 +17,7 @@ I am Japanese, so plz forgive describing this algorithm in Japanese. Let me get 
 
 ##　背景
 ゼミの研究で並列ソーティングの可能性について考えていたところ、O(Nlogk)≃O(N)でソーティングできるアルゴリズムを思いついたので公開します。O(N
-)と聞いてO(NlogN)よりも早いことに違和感を感じる方もいるかと思いますが、比較しないソーティングの限界はO(NlogN)ではありません。RadixSortなどがその主な例です。
+)と聞いてO(NlogN)よりも早いことに違和感を感じる方もいるかと思いますが、key比較しないソーティングの限界はO(NlogN)ではありません。RadixSortなどがその主な例です。
 
 
 ##　アルゴリズムの詳細
