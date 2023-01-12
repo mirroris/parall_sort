@@ -16,7 +16,6 @@ ui *tmparray[32];
 
 /*  global for all programs */
 int size, seed;
-int Nthrds;
 struct Node{
     ui num;
     struct Node *rp;
@@ -30,7 +29,6 @@ Node *bstk[STKSIZE];
 int dfs(Node *n, ui *array, int k, ui num, int index);
 void delete(Node *n);
 void merge(Node *a, Node *b);
-void fullmerge(ui *array, int *chunk);
 
 /*  build:  order for array -> order for tree   */
 void build(Node *root, ui *array, int size){
@@ -46,9 +44,6 @@ void build(Node *root, ui *array, int size){
                     child->rp = NULL;
                     child->lp = NULL;
                     child->num = 0;
-                    /*if(k!=0) child->leaf = false;
-                    else child->leaf = true;
-                    */
                     np->rp = child;
                     //printf("(%u)",(1 << k));
                 }
@@ -62,9 +57,7 @@ void build(Node *root, ui *array, int size){
                     child->rp = NULL;
                     child->lp = NULL;
                     child->num = 0;
-                    /*if(k!=0) child->leaf = false;
-                    else child->leaf = true;
-                    */np->lp = child;
+                    np->lp = child;
                     //printf("(%u)",(1 << k));
                 }
                 np = np->lp;
@@ -77,31 +70,10 @@ void build(Node *root, ui *array, int size){
     return;
 }
 
-void build(Node *np, ui *array, int k, ui x){
-    bool leaf = true;
-    if((x&(1<<k))==0){
-        /* 左の部分木のどこに挿入するか */
-        if(np->lp!=NULL) {
-            if(np->lp->val<=x)uild(np->lp, array, k+1, x);
-            else 
-        }
-        else {
-            Node *child = (Node *)malloc(sizeof(Node));
-            child->lp = NULL;
-            child->rp = NULL;
-            child->num = 0;
-            child->val = x;
-        }
-    }
-    else {
-        if(np->rp!=NULL) build(np->rp, array, k+1, x);
-    }
-    if(leaf)
-}
-
 /*  build_parallel:  order for array -> order for tree   */
 void build_parallel(Node **root, ui *array, int size){
     Node *np;
+    int Nthrds;
     #pragma omp parallel 
     {
         int id;
@@ -156,14 +128,15 @@ void build_parallel(Node **root, ui *array, int size){
         int d = Nthrds;
         int prevd = Nthrds;
         int preprevd = Nthrds;
-        /*
         while(d>1){
         d = 1 + ((d - 1)/2); 
         if((id+d) < prevd) {
-            //printf("merge(%d, %d)\n", id, id+d);
-            //dfs(root[id], array, 0, 0);
-            //dfs(root[id+d], array, 0, 0);
+            printf("merge(%d, %d)\n", id, id+d);
             merge(root[id], root[id+d]);
+        }
+        else if((prevd<=id) && (id<preprevd)){
+            printf("delete(%d)\n", id);
+            delete(root[id]);
         }
         prevd = d;
         preprevd = prevd;
@@ -172,24 +145,6 @@ void build_parallel(Node **root, ui *array, int size){
         */
     
     /*
-    int d =Nthrds;
-    int prevd = Nthrds;
-    while(d>1){
-    d = 1 + ((d - 1)/2); 
-    for(int id=0;id<Nthrds;id++){
-    if((id+d) < prevd) {
-        //printf("merge(%d, %d)\n", id, id+d);
-        //dfs(root[id], array, 0, 0);
-        //dfs(root[id+d], array, 0, 0);
-        merge(root[id], root[id+d]);
-        printf("merged root[%d] = \n", id);
-        index = 0;
-        dfs(root[id], array, 0, 0);
-    }
-    }
-    prevd = d;
-    }
-    
     printf("root[0]=\n");
     dfs(root[0], array, 0, 0);
     printf("root[1]=\n");
@@ -198,23 +153,6 @@ void build_parallel(Node **root, ui *array, int size){
     printf("root[0]=\n");
     dfs(root[0], array, 0, 0);
     */
-    }   
-    index = 0;
-    for(int i=1;i<Nthrds;i++){
-        chunk[i]+=chunk[i-1];
-    }
-    for(int id=0;id<Nthrds;id++){
-        index = chunk[id];
-        dfs(root[id], array, 0, 0);
-    } 
-    fullmerge(array ,chunk);
-    return;
-}
-
-void fullmerge(ui *array, int *chunk){
-    for(int i=0;i<Nthrds;i++){
-        while(1);
-    }
     return;
 }
 
@@ -235,7 +173,6 @@ void merge(Node *a, Node *b){
         printf("bsp = %d\n",bsp);
         anp = astk[asp];
         bnp = bstk[bsp];
-
         if(bnp->lp!=NULL){
             bnp = bnp->lp;
             bstk[++bsp] = bnp;
@@ -269,7 +206,6 @@ void merge(Node *a, Node *b){
             asp--,bsp--;
         }
     }while(bsp>0);
-
     return;
 }*/
 
@@ -286,31 +222,24 @@ void merge(ui *array1, ui *array2, int begin, int mid, int end){
         array[i] = array[j];
         array[j] = tmp;
     }
-
     while(i<mid) array1[i] = array2[j];
     while(j<end) array1[i] = array2[]
     return;
 }*/
 
 void merge(Node *a, Node *b){
-    bool leafflag = true;
+    bool nullflag = true;
     if(b->lp!=NULL){
-        leafflag = false;
+        nullflag = false;
         if(a->lp!=NULL) merge(a->lp, b->lp);
-        else {
-            a->lp = b->lp;
-            b->lp = NULL;
-        }
+        else a->lp = b->lp;
     }
     if(b->rp!=NULL){
-        leafflag = false;
+        nullflag = false;
         if(a->rp!=NULL) merge(a->rp, b->rp);
-        else {
-            a->rp = b->rp;
-            b->rp = NULL;
-        }
+        else a->rp = b->rp;
     }
-    if(leafflag){
+    if(nullflag){
         a->num+=b->num;
     }
     return;
@@ -322,13 +251,11 @@ int dfs(Node *n, ui *array, int k, ui num, int index){
     bool leafflag = true;
     int tindex=index;
     if(n->lp!=NULL) {
-        leafflag = false;
         //printf("dfs(%u)\n", n->num);
         tindex = dfs(n->lp, array, k+1, num, tindex);
         leafflag = false;
     }
     if(n->rp!=NULL){
-        leafflag = false;
         dfsnum = num + (1<<(POWMAX-k));
         //printf("dfs(%u)\n", n->num);
         tindex = dfs(n->rp, array, k+1, dfsnum, tindex);
@@ -348,7 +275,6 @@ int dfs(Node *n, ui *array, int k, ui num, int index){
 void delete(Node *n){
     if(n->lp!=NULL) delete(n->lp);
     if(n->rp!=NULL) delete(n->rp);
-    n=NULL;
     free(n);
     return;
 }
@@ -417,7 +343,7 @@ double sort2(ui *array){
 void main(int argc, char *argv[])//プログラム名 大きさ シード値
 {
     if(argc != 3) {
-        //printf("please input size and seed\n");
+        printf("please input size and seed\n");
         return;
     }
     size = atoi(argv[1]);
@@ -435,8 +361,7 @@ void main(int argc, char *argv[])//プログラム名 大きさ シード値
     }
 
     double time1 = sort1(array1);
-    //double time2 = sort2(array2);
-    double time2 = 0;
+    double time2 = sort2(array2);
 
     printf("time1 = %lf, time2 = %lf\n", time1, time2);
     printf("speedup = %lf\n", time1 / time2);
