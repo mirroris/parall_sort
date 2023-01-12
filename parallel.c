@@ -10,21 +10,23 @@
 #define MAXTHRDS 32
 #define STKSIZE 33
 
+ui ml;
+int measure[32];
+ui *tmparray[32];
 
 /*  global for all programs */
 int size, seed;
 struct Node{
     ui num;
-    struct Node *lp;
     struct Node *rp;
+    struct Node *lp;
 };
 typedef  struct Node Node;
 
 Node *astk[STKSIZE];
 Node *bstk[STKSIZE];
 
-ui index;
-void dfs(Node *n, ui *array, int k, ui num);
+int dfs(Node *n, ui *array, int k, ui num, int index);
 void delete(Node *n);
 void merge(Node *a, Node *b);
 
@@ -77,11 +79,39 @@ void build_parallel(Node **root, ui *array, int size){
         int id;
         id = omp_get_thread_num();
         Nthrds = omp_get_num_threads();
-        int chunk = size/Nthrds;
-        int rent = size%Nthrds;
+        #pragma omp barrier
+        if(id == 0){
+            ml = (1LL<<32) /Nthrds;
+            for(int i=0;i<size;i++){
+                ui x = array[i];
+                ui y = x/ml;
+                tmparray[y][measure[y]++]= x;
+            }
+        }
+        /*
+        if(id == 0){
+            for(int i=0;i<Nthrds;i++){
+                printf("tmparray[%d] == \n",i);
+                for(int j=0;j<measure[i];j++){
+                    printf("%u ",tmparray[i][j]);
+                }
+                printf("\n");
+            }
+        }*/
         root[id] = (Node *)malloc(sizeof(Node));
         root[id]->rp = NULL;
         root[id]->lp = NULL;
+        #pragma omp barrier
+            if(measure[id]!=0){
+            build(root[id], tmparray[id], measure[id]);
+            int lindex = 0;
+            for(int i=0;i<id;i++) lindex+=measure[i];
+            //printf("index of id(%d) = %d\n",id,lindex);
+            dfs(root[id], array, 0, 0, lindex);
+        }
+        delete(root[id]);
+    }
+    /*
         if(id<Nthrds-1) {
             root[id]->num = chunk;
             build(root[id], array+id*chunk, chunk);
@@ -91,9 +121,10 @@ void build_parallel(Node **root, ui *array, int size){
             build(root[id], array+id*chunk, rent);
         }
     #pragma omp barrier
+    
     // ここでrootをマージしたい
     // while (k>1) root =  merge(root, k) (k分割マージ)
-    
+        /*
         int d = Nthrds;
         int prevd = Nthrds;
         int preprevd = Nthrds;
@@ -111,8 +142,8 @@ void build_parallel(Node **root, ui *array, int size){
         preprevd = prevd;
         #pragma omp barrier
         }
-        
-    }
+        */
+    
     /*
     printf("root[0]=\n");
     dfs(root[0], array, 0, 0);
@@ -124,6 +155,7 @@ void build_parallel(Node **root, ui *array, int size){
     */
     return;
 }
+
 
 /*
 void merge(Node *a, Node *b){
@@ -145,7 +177,7 @@ void merge(Node *a, Node *b){
         if(bnp->lp!=NULL){
             bnp = bnp->lp;
             bstk[++bsp] = bnp;
-            /*if(anp->lp!=NULL) {
+            if(anp->lp!=NULL) {
                 anp = anp->lp;
                 astk[++asp] = anp;
             }
@@ -158,7 +190,7 @@ void merge(Node *a, Node *b){
         else if(bnp->rp!=NULL){
             bnp = bnp->rp;
             bstk[++bsp] = bnp;
-            /*if(anp->rp!=NULL) {
+            if(anp->rp!=NULL) {
                 anp = anp->rp;
                 astk[++asp] = anp;
             }
@@ -176,6 +208,25 @@ void merge(Node *a, Node *b){
         }
     }while(bsp>0);
 
+    return;
+}*/
+
+/*
+void merge(ui *array1, ui *array2, int begin, int mid, int end){
+    int i=begin,j=end;
+    ui tmp=0;
+    while((i<end) && (j<end)){
+        tmp = array2[j];
+        while((i<j) && array1[i]=<tmp)i++;
+        tmp = array1[i];
+        while((j<end) && tmp>array2[j])j++;
+        tmp = array1[i];
+        array[i] = array[j];
+        array[j] = tmp;
+    }
+
+    while(i<mid) array1[i] = array2[j];
+    while(j<end) array1[i] = array2[]
     return;
 }*/
 
@@ -198,29 +249,30 @@ void merge(Node *a, Node *b){
 }
 
 /*  dfs:    order for tree -> order forarray   */
-void dfs(Node *n, ui *array, int k, ui num){
+int dfs(Node *n, ui *array, int k, ui num, int index){
     ui dfsnum=0;   
     bool leafflag = true;
+    int tindex=index;
     if(n->lp!=NULL) {
         //printf("dfs(%u)\n", n->num);
-        dfs(n->lp, array, k+1, num);
+        tindex = dfs(n->lp, array, k+1, num, tindex);
         leafflag = false;
     }
     if(n->rp!=NULL){
         dfsnum = num + (1<<(POWMAX-k));
         //printf("dfs(%u)\n", n->num);
-        dfs(n->rp, array, k+1, dfsnum);
+        tindex = dfs(n->rp, array, k+1, dfsnum, tindex);
         leafflag = false;
     }
     if(leafflag){
         ui cnt = n->num;
-        printf("num = %u\n", num);
         while(cnt-->0){
-            array[index] = num;
-            index++;
+            //printf("array[%d] = %u\n", tindex, num);
+            array[tindex] = num;
+            tindex++;
         }
     }
-    return;
+    return tindex;
 } 
 
 void delete(Node *n){
@@ -229,6 +281,7 @@ void delete(Node *n){
     free(n);
     return;
 }
+
 
 double sort1(ui *array){
     double time;
@@ -244,8 +297,7 @@ double sort1(ui *array){
 
     build(root, array, size);
     printf ("build (%lf)\n", omp_get_wtime()-time);
-    index = 0;
-    dfs(root, array, 0, 0);
+    dfs(root, array, 0, 0,0);
     printf ("dfs (%lf)\n", omp_get_wtime()-time);
     delete(root);
     //逐次ソート終了
@@ -266,18 +318,14 @@ double sort1(ui *array){
 
 double sort2(ui *array){
     double time;
-
     int i;
-
+    for(int i=0;i<32;i++)measure[i] = 0;
+    for(int i=0;i<32;i++)tmparray[i] = (ui *)malloc(sizeof(ui)*size);
     time = omp_get_wtime();
     //並列ソート開始
     Node **root = (Node **)malloc(sizeof(Node *)*MAXTHRDS);
     build_parallel(root, array, size);
     printf ("build_parallel (%lf)\n", omp_get_wtime()-time);
-    index = 0;
-    dfs(root[0], array, 0, 0);
-    printf ("dfs (%lf)\n", omp_get_wtime()-time);
-    delete(root[0]);
     free(root);
     //並列ソート終了
     int flag = 0;
@@ -291,6 +339,7 @@ double sort2(ui *array){
         return -1;
     }
     time = omp_get_wtime()-time;
+    for(int i=0;i<32;i++)free(tmparray[i]);
     return time;
 }
 
@@ -310,7 +359,7 @@ void main(int argc, char *argv[])//プログラム名 大きさ シード値
 
     int i;
     for(i=0; i<size; i++){
-        array1[i] = rand()%MOD;
+        array1[i] = rand();
         array2[i] = array1[i];
     }
 
