@@ -6,7 +6,7 @@
 #include<unistd.h>
 #define ui unsigned int 
 #define POWMAX 31
-#define MOD 1024
+#define MOD 1
 #define MAXTHRDS 32
 #define STKSIZE 33
 
@@ -98,9 +98,6 @@ void build_parallel(Node **root, ui *array, int size){
                 printf("\n");
             }
         }*/
-        root[id] = (Node *)malloc(sizeof(Node));
-        root[id]->rp = NULL;
-        root[id]->lp = NULL;
         #pragma omp barrier
             if(measure[id]!=0){
             build(root[id], tmparray[id], measure[id]);
@@ -316,11 +313,16 @@ double sort1(ui *array){
 double sort2(ui *array){
     double time;
     int i;
-    for(int i=0;i<32;i++)measure[i] = 0;
-    for(int i=0;i<32;i++)tmparray[i] = (ui *)malloc(sizeof(ui)*size);
+    for(int i=0;i<4;i++)measure[i] = 0;
+    for(int i=0;i<4;i++)tmparray[i] = (ui *)malloc(sizeof(ui)*size);
+    Node **root = (Node **)malloc(sizeof(Node *)*MAXTHRDS);
+    for(int i=0;i<4;i++){
+        root[i] = (Node *)malloc(sizeof(Node));
+        root[i]->rp = NULL;
+        root[i]->lp = NULL;
+    }
     time = omp_get_wtime();
     //並列ソート開始
-    Node **root = (Node **)malloc(sizeof(Node *)*MAXTHRDS);
     build_parallel(root, array, size);
     printf ("build_parallel (%lf)\n", omp_get_wtime()-time);
     free(root);
@@ -336,7 +338,7 @@ double sort2(ui *array){
         return -1;
     }
     time = omp_get_wtime()-time;
-    for(int i=0;i<32;i++)free(tmparray[i]);
+    for(int i=0;i<4;i++)free(tmparray[i]);
     return time;
 }
 
