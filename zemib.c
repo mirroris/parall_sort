@@ -1,14 +1,17 @@
-#ifdef ZEMIB_H
+#ifndef ZEMIB_H
 #define ZEMIB_H
-#include "zemi.h"
+#include "zemib.h"
 #endif
 
+#include<stdio.h>
+
+typedef unsigned int  ui;
 
 extern int size, seed;
 ui mod, digMax;
 ui bucket[8][MOD]; /*    bucket level */
 
-void msdRadixSort(ui *array){
+void msdRadixSort(ui *array, ui mod){
     ui max = findMax(array);
     digMax = 1;
     ui powMod = mod;
@@ -16,7 +19,7 @@ void msdRadixSort(ui *array){
         powMod=powMod*mod;
         digMax++;
     }
-    radixSort(array, mod, digMax);
+    radixSort(array, digMax, 0, size);
 }
 
 ui findMax(ui *array){
@@ -29,23 +32,23 @@ ui findMax(ui *array){
 
 void radixSort(ui *array, ui l, ui left, ui right){
     ui head[mod], tail[mod];
-
+    ui *lbucket = bucket[l];
     /*  make bucket empty */
-    for(int i=0;i<8;i++)bucket[l][i] = 0;
+    for(int i=0;i<8;i++)lbucket[i] = 0;
     /*  distribute array element to bucket  */
     ui divmod = 1;
     for(int i=0;i<l;i++)MOD*divmod;
     for(int i=0;i<size;i++){
-        bucket[array[i]%divmod]++;
+        lbucket[array[i]%divmod]++;
     }
 
     /*  calculate head, tail of the indexes of the bucket*/
     head[0] = 0;
-    tail[0] = bucket[i]; 
+    tail[0] = lbucket[0]; 
     ui pocket = tail[0];
     for(int i=1;i<mod;i++){
         head[i] = pocket; 
-        tail[i] = pocket + bucket[i];
+        tail[i] = pocket + lbucket[i];
         pocket = tail[i];
     }
 
@@ -53,7 +56,7 @@ void radixSort(ui *array, ui l, ui left, ui right){
     for(int i=0;i<mod;i++){
         while(head[i]<tail[i]){
             ui v = array[head[i]];
-            acindex = v%divmod;
+            ui acindex = v%divmod;
             while((acindex)!=i){
                 ui tmp = array[head[acindex]]; 
                 array[head[acindex]++] = v;
@@ -62,8 +65,8 @@ void radixSort(ui *array, ui l, ui left, ui right){
             array[head[i]++] = v;
         }
     }
-
-    if(l-->0){
+    printf("radixSort(arra, %u, ...)\n",l);
+    if(--l!=0){
         for(int i=0;i<mod;i++) {
             if(i==0) radixSort(array, l, 0, tail[i]);
             else radixSort(array, l, tail[i-1], tail[i]);

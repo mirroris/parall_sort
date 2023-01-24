@@ -4,12 +4,11 @@
 #include <omp.h>
 #include<stdbool.h>
 #include<unistd.h>
+#include"zemib.h"
 
 #define ui unsigned int
 int size, seed;
 
-
-ui mod = 10; 
 double sort1(ui *array){
     double time;
 
@@ -17,7 +16,7 @@ double sort1(ui *array){
 
     time = omp_get_wtime();
     //逐次ソート開始
-    msdRadixSort(array, mod);
+    msdRadixSort(array, 16);
     //逐次ソート終了
     time = omp_get_wtime() - time;
 
@@ -71,7 +70,7 @@ void main(int argc, char *argv[])//プログラム名 大きさ シード値
 
     int i;
     for(i=0; i<size; i++){
-        array1[i] = rand()%MOD;
+        array1[i] = rand();
         array2[i] = array1[i];
     }
 
