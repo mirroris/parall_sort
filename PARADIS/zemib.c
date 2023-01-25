@@ -6,12 +6,14 @@
 #include<stdio.h>
 
 typedef unsigned int  ui;
+typedef long long ll;
 
 extern int size, seed;
 ui mod, digMax;
 ui bucket[8][MOD]; /*    bucket level */
 
-void msdRadixSort(ui *array, ui mod){
+void msdRadixSort(ui *array, ui argmod){
+    mod = argmod;
     ui max = findMax(array);
     digMax = 0;
     ui powMod = mod;
@@ -30,16 +32,18 @@ ui findMax(ui *array){
     return max;
 }
 
-void radixSort(ui *array, ui l, ui left, ui right){
-    ui head[mod], tail[mod];
+void radixSort(ui *array, int l, int left, int right){
+
+    ui head[mod], tail[mod], index;
     ui *lbucket = bucket[l];
     /*  make bucket empty */
     for(int i=0;i<8;i++)lbucket[i] = 0;
     /*  distribute array element to bucket  */
-    ui divmod = 1;
-    for(int i=0;i<l;i++)MOD*divmod;
     for(int i=0;i<size;i++){
-        lbucket[array[i]%divmod]++;
+        /*  calculate l'th most significant digit to acindex with shift*/
+        ui index = array[i] << (4*l);   /*  when mod=16, l'th digits of HEX begins at 4*(l-1)+1 bit of BIN : but l is 0-indexed so << 4*l */
+        index = index >> 28; // 28 means 32-4, which is 4 most significant digits of previous acindex   
+        lbucket[index]++;
     }
 
     /*  calculate head, tail of the indexes of the bucket*/
@@ -56,20 +60,24 @@ void radixSort(ui *array, ui l, ui left, ui right){
     for(int i=0;i<mod;i++){
         while(head[i]<tail[i]){
             ui v = array[head[i]];
-            ui acindex = v%divmod;
-            while((acindex)!=i){
-                ui tmp = array[head[acindex]]; 
-                array[head[acindex]++] = v;
+            /*  calculate l'th most significant digit to acindex with shift*/
+            index = v << (4*l);
+            index = index >> 28; 
+            while((index)!=i){
+                ui tmp = array[head[index]]; 
+                array[head[index]++] = v;
                 v = tmp;
             }
             array[head[i]++] = v;
         }
     }
-    printf("radixSort(arra, %u, ...)\n",l);
-    if(--l!=0){
+
+    ui prevtail = 0, curtail = 0;
+    if(l--!=0){
         for(int i=0;i<mod;i++) {
-            if(i==0) radixSort(array, l, 0, tail[i]);
-            else radixSort(array, l, tail[i-1], tail[i]);
+            curtail = tail[i];
+            if(curtail > prevtail) radixSort(array, l, prevtail, curtail); //if curtail = prevtail call is not required
+            prevtail = curtail;
         }
     }
     return;

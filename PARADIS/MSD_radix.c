@@ -8,6 +8,7 @@
 
 #define ui unsigned int
 int size, seed;
+#define MOD 16
 
 double sort1(ui *array){
     double time;
@@ -70,7 +71,7 @@ void main(int argc, char *argv[])//プログラム名 大きさ シード値
 
     int i;
     for(i=0; i<size; i++){
-        array1[i] = rand();
+        array1[i] = rand()%MOD;
         array2[i] = array1[i];
     }
 
