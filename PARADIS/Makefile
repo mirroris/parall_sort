@@ -1,15 +1,18 @@
-MAIN = MSD_radix.c
+MAIN = paradis.c
 OBJS = main.o zemib.o
 PROGRAM = parallel
+DEBUGPROG = deb
 OPTION = -fopenmp
 
 default: zemib.o main.o
 	@gcc -o $(PROGRAM) $(OPTION) zemib.o main.o
+	@echo "$(PROGRAM) is generated for main"
 
 debug: $(MAIN) zemib.c
 	@gcc -g -c -o zemib.dbg zemib.c 
 	@gcc -g -c -o main.dbg $(MAIN) 
-	@gcc -g -o $(PROGRAM).dbg $(OPTION) zemib.dbg main.dbg
+	@gcc -g -o $(DEBUGPROG) $(OPTION) zemib.dbg main.dbg
+	@echo "$(DEBUGPROG) is generated for dbg"
 
 zemib.o: zemib.c
 	@gcc -c -o zemib.o zemib.c
@@ -18,7 +21,7 @@ main.o: $(MAIN)
 	@gcc -c -o main.o $(MAIN)
 
 clean:
-	@rm -f *.o $(PROGRAM) *.dbg
+	@rm -f *.o $(PROGRAM) $(DEBUG) *.dbg
 
 help:
 	@echo "default	:generate parallel(exe)"
