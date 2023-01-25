@@ -9,19 +9,19 @@ typedef unsigned int  ui;
 typedef long long ll;
 
 extern int size, seed;
-ui mod, digMax;
+ui mod, digmax;
 ui bucket[8][MOD]; /*    bucket level */
 
 void msdRadixSort(ui *array, ui argmod){
     mod = argmod;
     ui max = findMax(array);
-    digMax = 0;
+    digmax = 0;
     ui powMod = mod;
     while(max>mod){
         max/=mod;
-        digMax++;
+        digmax++;
     }
-    radixSort(array, digMax, 0, size);
+    radixSort(array, digmax, 0, size);
 }
 
 ui findMax(ui *array){
@@ -37,12 +37,12 @@ void radixSort(ui *array, int l, int left, int right){
     ui head[mod], tail[mod], index;
     ui *lbucket = bucket[l];
     /*  make bucket empty */
-    for(int i=0;i<8;i++)lbucket[i] = 0;
+    for(int i=0;i<mod;i++)lbucket[i] = 0;
     /*  distribute array element to bucket  */
+    ui shift = 28 - 4*l; /*  when mod=16, n'th digits of HEX begins at 4*(n-1)+1 bit of BIN : n = 8-l;*/
     for(int i=0;i<size;i++){
         /*  calculate l'th most significant digit to acindex with shift*/
-        ui index = array[i] << (4*l);   /*  when mod=16, l'th digits of HEX begins at 4*(l-1)+1 bit of BIN : but l is 0-indexed so << 4*l */
-        index = index >> 28; // 28 means 32-4, which is 4 most significant digits of previous acindex   
+        ui index = (array[i] << shift) >> 28;    // 28 means 32-4, which is 4 most significant digits of previous acindex   
         lbucket[index]++;
     }
 
@@ -61,12 +61,12 @@ void radixSort(ui *array, int l, int left, int right){
         while(head[i]<tail[i]){
             ui v = array[head[i]];
             /*  calculate l'th most significant digit to acindex with shift*/
-            index = v << (4*l);
-            index = index >> 28; 
-            while((index)!=i){
+            index = (v << shift) >> 28;
+            while(head[index]!=head[i]){
                 ui tmp = array[head[index]]; 
                 array[head[index]++] = v;
                 v = tmp;
+                index = (v << shift) >> 28;
             }
             array[head[i]++] = v;
         }
