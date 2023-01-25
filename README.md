@@ -11,6 +11,10 @@ Msd radix sort is more parallel executable than wellknown radix sort(lsdradix so
 
 PARADIS is one of the solution that make this msd radix sort more parallel executable. Compared to sequential one,new two phases, permutate and repair, are needed to acommplish high parallel efficiency.
 
+# MAKE
+Makefile in PARADIS is helpful for compile, debug. It gives some target, "clean", "debug", "help" etc.
+If you want to know what you should, please command **"make help"**!
+
 # REFERENCE
 ROLLAND HE. "PARADIS: A PARALLEL IN-PLACE RADIX SORT ALGORITHM", https://stanford.edu/~rezab/classes/cme323/S16/projects_reports/he.pdf
 
