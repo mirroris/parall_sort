@@ -41,6 +41,7 @@ double sort2(ui *array){
     //並列ソート開始
     msdParRadixSort(array, 16);
     //並列ソート終了
+    time = omp_get_wtime()-time;
     int flag = 0;
     for(i=0; i<size-1; i++){
         if((int)(array[i+1] - array[i]) < 0)
@@ -51,7 +52,6 @@ double sort2(ui *array){
         printf("Parallel program may wrong.\n");
         return -1;
     }
-    time = omp_get_wtime()-time;
     return time;
 }
 

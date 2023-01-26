@@ -99,9 +99,8 @@ void msdParRadixSort(ui *array, ui argmod){
         max/=mod;
         digmax++;
     }
-    #pragma omp parallel num_threads(4)
+    #pragma omp parallel num_threads(8)
     {   
-        printf("OK\n");
         #pragma omp single 
         {
             paradis(array, digmax, 0, size);
@@ -127,7 +126,7 @@ void paradis(ui *array, int l, int left, int right){
     for(int i=0;i<mod;i++)lbucket[i] = 0;
     /*  distribute array element to bucket  */
     ui shift = 28 - 4*l; /*  when mod=16, n'th digits of HEX begins at 4*(n-1)+1 bit of BIN : n = 8-l;*/
-    //#pragma omp parallel for reduction(+:lbucket[left:right])
+    //#pragma omp parallel for reduction(+:lbucket[:mod])
         for(int i=left;i<right;i++){
             /*  calculate l'th most significant digit to acindex with shift*/
             index = (array[i] << shift) >> 28;    // 28 means 32-4, which is 4 most significant digits of previous acindex   
