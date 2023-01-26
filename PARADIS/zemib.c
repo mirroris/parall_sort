@@ -22,6 +22,7 @@ void msdRadixSort(ui *array, ui argmod){
         digmax++;
     }
     radixSort(array, digmax, 0, size);
+    //display(array);
 }
 
 ui findMax(ui *array){
@@ -83,13 +84,13 @@ void radixSort(ui *array, int l, int left, int right){
     return;
 }
 
-void display(ui *array, int l, int left, int right){
-    printf("array (%u ,%u, %u) = ", l, left, right);
+void display(ui *array){
+    printf("array =");
     for(int i=0;i<size;i++)printf("%u ",array[i]);
     printf("\n");
 }
 
-void paradis(ui *array, ui argmod){
+void msdParRadixSort(ui *array, ui argmod){
     mod = argmod;
     ui max = findMaxPar(array);
     digmax = 0;
@@ -98,7 +99,8 @@ void paradis(ui *array, ui argmod){
         max/=mod;
         digmax++;
     }
-    radixParSort(array, digmax, 0, size);
+    paradis(array, digmax, 0, size);
+    //display(array);
 }
 
 ui findMaxPar(ui *array){
@@ -110,20 +112,21 @@ ui findMaxPar(ui *array){
     return max;
 }
 
-void radixParSort(ui *array, int l, int left, int right){
+void paradis(ui *array, int l, int left, int right){
     //display(array, l, left, right);
     ui head[mod], tail[mod], index;
-    ui *lbucket = bucket[l];
+    ui lbucket[mod];
     /*  make bucket empty */
     for(int i=0;i<mod;i++)lbucket[i] = 0;
     /*  distribute array element to bucket  */
     ui shift = 28 - 4*l; /*  when mod=16, n'th digits of HEX begins at 4*(n-1)+1 bit of BIN : n = 8-l;*/
-    #pragma omp parallel for reduciton(+:lbucket[left:right])
+    #pragma omp parallel for reduction(+:lbucket[left:right])
         for(int i=left;i<right;i++){
             /*  calculate l'th most significant digit to acindex with shift*/
             index = (array[i] << shift) >> 28;    // 28 means 32-4, which is 4 most significant digits of previous acindex   
             lbucket[index]++;
         }
+    
     /*  calculate head, tail of the indexes of the bucket*/
     head[0] = left;
     tail[0] = left+lbucket[0]; 
@@ -149,16 +152,23 @@ void radixParSort(ui *array, int l, int left, int right){
             array[head[i]++] = v;
         }
     }
+    
 
     ui prevtail = left, curtail = left;
     if(l--!=0){
-        for(int i=0;i<mod;i++) {
-            curtail = tail[i];
-            if(curtail > (prevtail+1)) {
-                #pragma omp task 
-                radixParSort(array, l, prevtail, curtail); //if curtail = prevtail call is not required
+        #pragma omp parallel
+        {
+            #pragma omp single 
+            {
+                for(int i=0;i<mod;i++) {
+                    curtail = tail[i];
+                    if(curtail > (prevtail+1)) {
+                        //#pragma omp task shared(array)
+                            paradis(array, l, prevtail, curtail); //if curtail = prevtail call is not required
+                    }
+                    prevtail = curtail;
+                }
             }
-            prevtail = curtail;
         }
     }
     return;
