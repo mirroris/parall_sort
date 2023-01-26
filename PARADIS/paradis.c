@@ -84,3 +84,4 @@ void main(int argc, char *argv[])//プログラム名 大きさ シード値
     free(array1);
     free(array2);
 }
+

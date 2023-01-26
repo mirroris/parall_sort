@@ -2,7 +2,7 @@ MAIN = paradis.c
 OBJS = main.o zemib.o
 PROGRAM = parallel
 DEBUGPROG = deb
-OPTION = -fopenmp
+OPTION = -fopenmp -std=c99 -O2
 
 default: zemib.o main.o
 	@gcc -o $(PROGRAM) $(OPTION) zemib.o main.o
@@ -15,10 +15,10 @@ debug: $(MAIN) zemib.c
 	@echo "$(DEBUGPROG) is generated for dbg"
 
 zemib.o: zemib.c
-	@gcc -c -o zemib.o zemib.c
+	@gcc -c $(OPTTION) -o zemib.o zemib.c
 
 main.o: $(MAIN)
-	@gcc -c -o main.o $(MAIN)
+	@gcc -c $(OPTION) -o main.o $(MAIN)
 
 clean:
 	@rm -f *.o $(PROGRAM) $(DEBUG) *.dbg
