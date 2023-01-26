@@ -39,7 +39,7 @@ double sort2(ui *array){
     int i;
     time = omp_get_wtime();
     //並列ソート開始
-    
+    paradis(array, 16);
     //並列ソート終了
     int flag = 0;
     for(i=0; i<size-1; i++){
