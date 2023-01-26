@@ -15,7 +15,7 @@ debug: $(MAIN) zemib.c
 	@echo "$(DEBUGPROG) is generated for dbg"
 
 zemib.o: zemib.c
-	@gcc -c $(OPTTION) -o zemib.o zemib.c
+	@gcc -c $(OPTION) -o zemib.o zemib.c
 
 main.o: $(MAIN)
 	@gcc -c $(OPTION) -o main.o $(MAIN)
